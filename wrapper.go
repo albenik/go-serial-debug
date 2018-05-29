@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/albenik/iolog"
-	"go.bug.st/serial.v1"
 )
 
 type OpenFunc func() (SerialPort, error)
@@ -24,7 +23,6 @@ func NewWrappedOpener(open OpenFunc, log *iolog.IOLog) OpenFunc {
 type SerialPort interface {
 	fmt.Stringer
 
-	SetMode(mode *serial.Mode) error
 	SetReadTimeout(t int) error
 	SetReadTimeoutEx(t, i uint32) error
 	SetFirstByteReadTimeout(t uint32) error
@@ -36,24 +34,16 @@ type SerialPort interface {
 	ResetOutputBuffer() error
 	SetDTR(dtr bool) error
 	SetRTS(rts bool) error
-	GetModemStatusBits() (bits *serial.ModemStatusBits, err error)
 	Close() error
 }
 
 type PortWrapper struct {
-	port serial.Port
+	port SerialPort
 	log  *iolog.IOLog
 }
 
 func (pw *PortWrapper) String() string {
 	return pw.port.String()
-}
-
-func (pw *PortWrapper) SetMode(mode *serial.Mode) error {
-	return pw.log.LogAny("set_mode", func() (interface{}, error) {
-		err := pw.port.SetMode(mode)
-		return mode, err
-	})
 }
 
 func (pw *PortWrapper) SetReadTimeout(t int) error {
@@ -126,14 +116,6 @@ func (pw *PortWrapper) SetRTS(rts bool) error {
 		err := pw.port.SetRTS(rts)
 		return rts, err
 	})
-}
-
-func (pw *PortWrapper) GetModemStatusBits() (bits *serial.ModemStatusBits, err error) {
-	pw.log.LogAny("get_modem_status_bits", func() (interface{}, error) {
-		bits, err = pw.port.GetModemStatusBits()
-		return bits, err
-	})
-	return
 }
 
 func (pw *PortWrapper) Close() error {
