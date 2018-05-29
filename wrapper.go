@@ -5,17 +5,38 @@ import (
 	"go.bug.st/serial.v1"
 )
 
-type OpenFunc func() (serial.Port, error)
+type OpenFunc func() (SerialPort, error)
 
-func Open(open OpenFunc, log *iolog.IOLog) (wrapper *PortWrapper, err error) {
-	log.LogAny("open", func() (interface{}, error) {
-		var port serial.Port
-		if port, err = open(); err == nil {
-			wrapper = &PortWrapper{port: port, log: log}
-		}
-		return port, err
-	})
-	return
+func NewWrappedOpener(open OpenFunc, log *iolog.IOLog) OpenFunc {
+	return func() (port SerialPort, err error) {
+		log.LogAny("open", func() (interface{}, error) {
+			if port, err = open(); err == nil {
+				port = &PortWrapper{port: port, log: log}
+			}
+			return port, err
+		})
+		return
+	}
+}
+
+type SerialPort interface {
+	GetName() string
+	SetMode(mode *serial.Mode) error
+	SetReadTimeout(t int) error
+	SetReadTimeoutEx(t, i uint32) error
+	SetFirstByteReadTimeout(t uint32) error
+	SetWriteTimeout(t int) error
+	ReadyToRead() (r uint32, err error)
+	Read(p []byte) (n int, err error)
+	Write(p []byte) (n int, err error)
+	ResetInputBuffer() error
+	ResetOutputBuffer() error
+	SetDTR(dtr bool) error
+	SetRTS(rts bool) error
+	GetModemStatusBits() (bits *serial.ModemStatusBits, err error)
+	Close() error
+	StartLoggging()
+	StopLogging() []*iolog.Record
 }
 
 type PortWrapper struct {
