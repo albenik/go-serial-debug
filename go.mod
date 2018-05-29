@@ -1,7 +1,7 @@
 module github.com/albenik/go-serial-debug
 
 replace (
-	go.bug.st/serial.v1 v0.0.0 => github.com/albenik/go-serial v1.0.0-my
+	go.bug.st/serial.v1 v0.0.0 => github.com/albenik/go-serial v1.0.0-my2
 )
 
 require (

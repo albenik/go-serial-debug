@@ -1,6 +1,8 @@
 package serialdebug
 
 import (
+	"fmt"
+
 	"github.com/albenik/iolog"
 	"go.bug.st/serial.v1"
 )
@@ -20,7 +22,8 @@ func NewWrappedOpener(open OpenFunc, log *iolog.IOLog) OpenFunc {
 }
 
 type SerialPort interface {
-	GetName() string
+	fmt.Stringer
+
 	SetMode(mode *serial.Mode) error
 	SetReadTimeout(t int) error
 	SetReadTimeoutEx(t, i uint32) error
@@ -35,8 +38,6 @@ type SerialPort interface {
 	SetRTS(rts bool) error
 	GetModemStatusBits() (bits *serial.ModemStatusBits, err error)
 	Close() error
-	StartLoggging()
-	StopLogging() []*iolog.Record
 }
 
 type PortWrapper struct {
@@ -44,8 +45,8 @@ type PortWrapper struct {
 	log  *iolog.IOLog
 }
 
-func (pw *PortWrapper) GetName() string {
-	return pw.port.GetName()
+func (pw *PortWrapper) String() string {
+	return pw.port.String()
 }
 
 func (pw *PortWrapper) SetMode(mode *serial.Mode) error {
