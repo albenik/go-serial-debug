@@ -8,7 +8,8 @@ import (
 
 type OpenFunc func() (SerialPort, error)
 
-func NewWrappedOpener(open OpenFunc, log *iolog.IOLog) OpenFunc {
+func NewWrappedOpener(open OpenFunc) OpenFunc {
+	log := iolog.New()
 	return func() (port SerialPort, err error) {
 		log.LogAny("open", func() (interface{}, error) {
 			if port, err = open(); err == nil {
