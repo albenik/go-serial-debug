@@ -55,6 +55,9 @@ func (pw *PortWrapper) Open() (SerialPort, error) {
 
 func (pw *PortWrapper) Close() error {
 	_, err := pw.log.LogAny("close", func() (interface{}, error) {
+		if pw.port == nil {
+			return nil, errors.New("wrapped port already closed")
+		}
 		err := pw.port.Close()
 		return nil, err
 	})
