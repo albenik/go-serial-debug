@@ -3,23 +3,11 @@ package serialdebug
 import (
 	"fmt"
 
+	"errors"
 	"github.com/albenik/iolog"
 )
 
 type OpenFunc func() (SerialPort, error)
-
-func Wrap(open OpenFunc, log *iolog.IOLog) OpenFunc {
-	return func() (SerialPort, error) {
-		port, err := log.LogAny("open", func() (interface{}, error) {
-			port, err := open()
-			if err == nil {
-				port = &PortWrapper{port: port, log: log}
-			}
-			return port, err
-		})
-		return port.(SerialPort), err
-	}
-}
 
 type SerialPort interface {
 	fmt.Stringer
@@ -39,8 +27,39 @@ type SerialPort interface {
 }
 
 type PortWrapper struct {
+	open OpenFunc
 	port SerialPort
 	log  *iolog.IOLog
+}
+
+func NewWrapper(open OpenFunc, log *iolog.IOLog) *PortWrapper {
+	return &PortWrapper{open: open, log: log}
+}
+
+func (pw *PortWrapper) Open() (SerialPort, error) {
+	if pw.port != nil {
+		return nil, errors.New("wrapped port already opened")
+	}
+
+	port, err := pw.log.LogAny("open", func() (interface{}, error) {
+		return pw.open()
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	pw.port = port.(SerialPort)
+	return pw, err
+}
+
+func (pw *PortWrapper) Close() error {
+	_, err := pw.log.LogAny("close", func() (interface{}, error) {
+		err := pw.port.Close()
+		return nil, err
+	})
+	pw.port = nil
+	return err
 }
 
 func (pw *PortWrapper) String() string {
@@ -123,14 +142,6 @@ func (pw *PortWrapper) SetRTS(rts bool) error {
 	_, err := pw.log.LogAny("set_rts", func() (interface{}, error) {
 		err := pw.port.SetRTS(rts)
 		return rts, err
-	})
-	return err
-}
-
-func (pw *PortWrapper) Close() error {
-	_, err := pw.log.LogAny("close", func() (interface{}, error) {
-		err := pw.port.Close()
-		return nil, err
 	})
 	return err
 }
