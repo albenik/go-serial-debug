@@ -6,11 +6,11 @@ import (
 	"github.com/albenik/iolog"
 )
 
-type OpenFunc func() (SerialPort, error)
+type OpenFunc func() (*PortWrapper, error)
 
 func NewWrappedOpener(open OpenFunc, ln int) OpenFunc {
 	log := iolog.New(ln)
-	return func() (port SerialPort, err error) {
+	return func() (port *PortWrapper, err error) {
 		log.LogAny("open", func() (interface{}, error) {
 			if port, err = open(); err == nil {
 				port = &PortWrapper{port: port, log: log}
@@ -126,7 +126,7 @@ func (pw *PortWrapper) Close() error {
 	})
 }
 
-func (pw *PortWrapper) StartLoggging() {
+func (pw *PortWrapper) StartLogging() {
 	pw.log.Start()
 }
 
