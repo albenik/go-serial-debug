@@ -6,18 +6,18 @@ import (
 	"github.com/albenik/iolog"
 )
 
-type OpenFunc func() (*PortWrapper, error)
+type OpenFunc func() (SerialPort, error)
 
-func NewWrappedOpener(open OpenFunc, ln int) OpenFunc {
-	log := iolog.New(ln)
-	return func() (port *PortWrapper, err error) {
-		log.LogAny("open", func() (interface{}, error) {
-			if port, err = open(); err == nil {
+func Wrap(open OpenFunc, log *iolog.IOLog) OpenFunc {
+	return func() (SerialPort, error) {
+		port, err := log.LogAny("open", func() (interface{}, error) {
+			port, err := open()
+			if err == nil {
 				port = &PortWrapper{port: port, log: log}
 			}
 			return port, err
 		})
-		return
+		return port.(SerialPort), err
 	}
 }
 
@@ -48,31 +48,35 @@ func (pw *PortWrapper) String() string {
 }
 
 func (pw *PortWrapper) SetReadTimeout(t int) error {
-	return pw.log.LogAny("set_read_timeout", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_read_timeout", func() (interface{}, error) {
 		err := pw.port.SetReadTimeout(t)
 		return t, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) SetReadTimeoutEx(t, i uint32) error {
-	return pw.log.LogAny("set_read_timeout_ex", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_read_timeout_ex", func() (interface{}, error) {
 		err := pw.port.SetReadTimeoutEx(t, i)
 		return &struct{ T, I uint32 }{t, i}, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) SetFirstByteReadTimeout(t uint32) error {
-	return pw.log.LogAny("set_first_byte_read_timeout", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_first_byte_read_timeout", func() (interface{}, error) {
 		err := pw.port.SetFirstByteReadTimeout(t)
 		return t, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) SetWriteTimeout(t int) error {
-	return pw.log.LogAny("set_write_timeout", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_write_timeout", func() (interface{}, error) {
 		err := pw.port.SetWriteTimeout(t)
 		return t, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) ReadyToRead() (r uint32, err error) {
@@ -92,44 +96,41 @@ func (pw *PortWrapper) Write(p []byte) (n int, err error) {
 }
 
 func (pw *PortWrapper) ResetInputBuffer() error {
-	return pw.log.LogAny("reset_input_buffer", func() (interface{}, error) {
+	_, err := pw.log.LogAny("reset_input_buffer", func() (interface{}, error) {
 		err := pw.port.ResetInputBuffer()
 		return nil, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) ResetOutputBuffer() error {
-	return pw.log.LogAny("reset_output_buffer", func() (interface{}, error) {
+	_, err := pw.log.LogAny("reset_output_buffer", func() (interface{}, error) {
 		err := pw.port.ResetOutputBuffer()
 		return nil, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) SetDTR(dtr bool) error {
-	return pw.log.LogAny("set_dtr", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_dtr", func() (interface{}, error) {
 		err := pw.port.SetDTR(dtr)
 		return dtr, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) SetRTS(rts bool) error {
-	return pw.log.LogAny("set_rts", func() (interface{}, error) {
+	_, err := pw.log.LogAny("set_rts", func() (interface{}, error) {
 		err := pw.port.SetRTS(rts)
 		return rts, err
 	})
+	return err
 }
 
 func (pw *PortWrapper) Close() error {
-	return pw.log.LogAny("close", func() (interface{}, error) {
+	_, err := pw.log.LogAny("close", func() (interface{}, error) {
 		err := pw.port.Close()
 		return nil, err
 	})
-}
-
-func (pw *PortWrapper) StartLogging() {
-	pw.log.Start()
-}
-
-func (pw *PortWrapper) StopLogging() []*iolog.Record {
-	return pw.log.Stop()
+	return err
 }
