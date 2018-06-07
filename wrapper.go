@@ -37,7 +37,6 @@ type SerialPort interface {
 }
 
 type PortWrapper struct {
-	open OpenFunc
 	port SerialPort
 	log  *iolog.IOLog
 }
