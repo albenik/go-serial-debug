@@ -3,11 +3,21 @@ package serialdebug
 import (
 	"fmt"
 
-	"errors"
 	"github.com/albenik/iolog"
 )
 
 type OpenFunc func() (SerialPort, error)
+
+func Wrap(fn OpenFunc, log *iolog.IOLog) OpenFunc {
+	return func() (SerialPort, error) {
+		port, err := log.LogAny("open", func() (interface{}, error) {
+			port, err := fn()
+			port = &PortWrapper{port: port, log: log}
+			return port, err
+		})
+		return port.(SerialPort), err
+	}
+}
 
 type SerialPort interface {
 	fmt.Stringer
@@ -30,43 +40,6 @@ type PortWrapper struct {
 	open OpenFunc
 	port SerialPort
 	log  *iolog.IOLog
-}
-
-func NewWrapper(open OpenFunc, log *iolog.IOLog) *PortWrapper {
-	return &PortWrapper{open: open, log: log}
-}
-
-func (pw *PortWrapper) Open() (SerialPort, error) {
-	if pw.port != nil {
-		return nil, errors.New("wrapped port already opened")
-	}
-
-	port, err := pw.log.LogAny("open", func() (interface{}, error) {
-		return pw.open()
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	pw.port = port.(SerialPort)
-	return pw, err
-}
-
-func (pw *PortWrapper) Close() error {
-	_, err := pw.log.LogAny("close", func() (interface{}, error) {
-		if pw.port == nil {
-			return nil, errors.New("wrapped port already closed")
-		}
-		err := pw.port.Close()
-		return nil, err
-	})
-	pw.port = nil
-	return err
-}
-
-func (pw *PortWrapper) String() string {
-	return pw.port.String()
 }
 
 func (pw *PortWrapper) SetReadTimeout(t int) error {
@@ -147,4 +120,17 @@ func (pw *PortWrapper) SetRTS(rts bool) error {
 		return rts, err
 	})
 	return err
+}
+
+func (pw *PortWrapper) Close() error {
+	_, err := pw.log.LogAny("close", func() (interface{}, error) {
+		err := pw.port.Close()
+		return nil, err
+	})
+	pw.port = nil
+	return err
+}
+
+func (pw *PortWrapper) String() string {
+	return pw.port.String()
 }
