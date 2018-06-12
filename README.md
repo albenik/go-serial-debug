@@ -1,3 +1,3 @@
 # go-serial-debug
 
-Debug logging wrapper over serial.Port from go.bug.st/serial.v1
+Debug logging wrapper over `serial.Port` from `github.com/albenik/go-serial`
